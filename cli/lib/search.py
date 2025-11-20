@@ -1,9 +1,30 @@
-from .search_utils import load_movies, load_stop_words, DEFAULT_SEARCH_LIMIT
-import string
-from nltk.stem import PorterStemmer
+from .search_utils import load_movies, DEFAULT_SEARCH_LIMIT
+from .tokenize import tokenize
+from .inverted_index import InvertedIndex
+from .preprocess_text import preprocess_text
 
 
 def search(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    preprocessed_query_tokens = tokenize(preprocess_text(query))
+    index_results = set()
+    doc_results = []
+    for token in preprocessed_query_tokens:
+        token_doc_ids = inverted_index.get_documents(token)
+        index_results.update(token_doc_ids)
+
+    print(len(index_results))
+
+    for index in sorted(index_results):
+        doc_results.append(inverted_index.docmap[index])
+        if len(doc_results) >= limit:
+            break
+
+    return doc_results
+
+
+def search_old(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     movies = load_movies()
     results = []
     preprocessed_query_token = tokenize(preprocess_text(query))
@@ -23,17 +44,3 @@ def query_in_title(query: list[str], title: list[str]) -> bool:
                 return True
 
     return False
-
-
-def preprocess_text(text: str) -> str:
-    mytable = str.maketrans("", "", string.punctuation)
-    return text.lower().translate(mytable)
-
-
-def tokenize(text: str) -> list[str]:
-    tokens = text.split()
-    stop_words = load_stop_words()
-    cleaned_tokens = [token for token in tokens if token not in stop_words]
-    stemmer = PorterStemmer()
-    stemmed_tokens = [stemmer.stem(token) for token in cleaned_tokens]
-    return stemmed_tokens
