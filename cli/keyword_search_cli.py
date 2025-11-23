@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 from lib.search import search
 from lib.inverted_index import InvertedIndex
+from lib.search_utils import tokenize, preprocess_text
 import argparse
+import math
 
 
 def main() -> None:
@@ -11,12 +13,17 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Search movies using BM25")
     build_parser = subparsers.add_parser("build", help="Build inverted index")
     tf_parser = subparsers.add_parser("tf", help="Display term frequencies")
+    idf_parser = subparsers.add_parser(
+        "idf", help="Display inverse document frequencies"
+    )
 
     search_parser.add_argument("query", type=str, help="Search query")
     tf_parser.add_argument(
         "ID", type=int, help="Document ID to display term frequencies for"
     )
     tf_parser.add_argument("term", type=str, help="Term to display frequency for")
+
+    idf_parser.add_argument("term", type=str, help="Term to display IDF for")
 
     args = parser.parse_args()
 
@@ -25,7 +32,7 @@ def main() -> None:
             # print the search query here
             results = search(args.query)
             for i, res in enumerate(results, start=1):
-                print(f"{i}. `{res['title']} {res['id']}\n")
+                print(f"{i}. {res['title']} {res['id']}\n")
         case "build":
             inverted_index = InvertedIndex()
             inverted_index.build()
@@ -38,6 +45,17 @@ def main() -> None:
             print(
                 f"Term Frequency of '{args.term}' in Document ID {args.ID}: {frequency}"
             )
+        case "idf":
+            inverted_index = InvertedIndex()
+            inverted_index.load()
+            doc_count = len(inverted_index.docmap)
+            token = tokenize(preprocess_text(args.term))
+            if len(token) > 1:
+                raise Exception("Please provide a single term for IDF calculation.")
+
+            term_count = len(inverted_index.get_documents(token[0]))
+            term_idf = math.log((doc_count + 1) / (term_count + 1))
+            print(f"Inverse Document Frequency of '{args.term}': {term_idf:.2f}")
 
         case _:
             parser.print_help()
