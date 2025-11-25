@@ -1,3 +1,4 @@
+import math
 from .search_utils import load_movies, PROJECT_ROOT, tokenize, preprocess_text
 import os
 import pickle
@@ -73,3 +74,12 @@ class InvertedIndex:
             raise (Exception("Only single term is allowed"))
 
         return self.term_frequencies[doc_id][token[0]]
+
+    def get_bm25_idf(self, term: str) -> float:
+        token = tokenize(preprocess_text(term))
+        if len(token) > 1:
+            raise (Exception("Only single term is allowed"))
+        N = len(self.docmap)
+        df = len(self.get_documents(token[0]))
+        bm25 = math.log((N - df + 0.5) / (df + 0.5) + 1)
+        return bm25
