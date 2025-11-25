@@ -83,3 +83,13 @@ class InvertedIndex:
         df = len(self.get_documents(token[0]))
         bm25 = math.log((N - df + 0.5) / (df + 0.5) + 1)
         return bm25
+
+    def idf(self, term: str) -> float:
+        doc_count = len(self.docmap)
+        token = tokenize(preprocess_text(term))
+        if len(token) > 1:
+            raise Exception("Please provide a single term for IDF calculation.")
+
+        term_count = len(self.get_documents(token[0]))
+        term_idf = math.log((doc_count + 1) / (term_count + 1))
+        return term_idf

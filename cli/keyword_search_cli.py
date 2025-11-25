@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 from lib.search import search
 from lib.inverted_index import InvertedIndex
-from lib.search_utils import tokenize, preprocess_text
-from lib.idf import bm25_idf_command, term_frequency, idf, tfidf
+from lib.idf import bm25_idf_command, term_frequency_command, idf_command, tfidf_command
 import argparse
-import math
 
 
 def main() -> None:
@@ -55,16 +53,16 @@ def main() -> None:
             inverted_index.save()
 
         case "tf":
-            frequency = term_frequency(args.ID, args.term)
+            frequency = term_frequency_command(args.ID, args.term)
             print(
                 f"Term Frequency of '{args.term}' in Document ID {args.ID}: {frequency}"
             )
         case "idf":
-            term_idf = idf(args.term)
+            term_idf = idf_command(args.term)
             print(f"Inverse Document Frequency of '{args.term}': {term_idf:.2f}")
 
         case "tfidf":
-            tf_idf = tfidf(args.ID, args.term)
+            tf_idf = tfidf_command(args.ID, args.term)
             print(
                 f"TF-IDF score of '{args.term}' in document '{args.ID}': {tf_idf:.2f}"
             )
