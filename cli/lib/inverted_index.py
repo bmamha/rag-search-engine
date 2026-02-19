@@ -1,8 +1,17 @@
 import math
-from .search_utils import load_movies, PROJECT_ROOT, tokenize, preprocess_text
+from .search_utils import (
+    DEFAULT_SEARCH_LIMIT,
+    load_movies,
+    PROJECT_ROOT,
+    tokenize,
+    preprocess_text,
+    BM25_K1,
+    BM25_B,
+)
 import os
 import pickle
 from collections import Counter
+from itertools import islice
 
 CACHE_PATH = os.path.join(PROJECT_ROOT, "cache")
 CACHE_INDEX_PATH = os.path.join(PROJECT_ROOT, "cache", "index.pkl")
@@ -15,6 +24,10 @@ class InvertedIndex:
     docmap = {}
     term_frequencies = {}
 
+    def __init__(self) -> None:
+        self.doc_lengths = {}
+        self.doc_lengths_path = os.path.join(CACHE_PATH, "doc_lengths.pkl")
+
     def __add_document(self, doc_id: int, text: str) -> None:
         tokens = tokenize(preprocess_text(text))
         cnt = Counter()
@@ -24,6 +37,18 @@ class InvertedIndex:
             self.index[token].add(doc_id)
             cnt[token] += 1
         self.term_frequencies[doc_id] = cnt
+        self.doc_lengths[doc_id] = len(tokens)
+
+    def __get_average_doc_length(self) -> float:
+        doc_count = len(self.doc_lengths)
+        if doc_count == 0:
+            return 0.0
+        doc_length_sum = 0
+        for value in self.doc_lengths.values():
+            doc_length_sum += value
+
+        avg_length = doc_length_sum / doc_count
+        return avg_length
 
     def get_documents(self, term: str) -> list[int]:
         return sorted(list(self.index.get(term.lower(), {})))
@@ -49,6 +74,9 @@ class InvertedIndex:
         with open(CACHE_TF_PATH, "wb") as f:
             pickle.dump(self.term_frequencies, f)
 
+        with open(self.doc_lengths_path, "wb") as f:
+            pickle.dump(self.doc_lengths, f)
+
     def load(self) -> None:
         try:
             with open(CACHE_INDEX_PATH, "rb") as f:
@@ -67,6 +95,36 @@ class InvertedIndex:
                 self.term_frequencies = pickle.load(f)
         except FileNotFoundError:
             raise Exception("File not found")
+
+        try:
+            with open(self.doc_lengths_path, "rb") as f:
+                self.doc_lengths = pickle.load(f)
+        except FileNotFoundError:
+            raise Exception("File not found")
+
+    def bm25(self, doc_id, term) -> float:
+        bm25_idf = self.get_bm25_idf(term)
+        bm25_tf = self.get_bm25_tf(doc_id, term)
+        bm25_score = bm25_idf * bm25_tf
+        return bm25_score
+
+    def bm25_search(self, query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> dict:
+        tokens = set(tokenize(preprocess_text(query)))
+        scores = dict.fromkeys(self.docmap.keys(), 0.0)
+
+        for doc_id in self.docmap.keys():
+            for token in tokens:
+                scores[doc_id] += self.bm25(doc_id, token)
+
+        sorted_score_desc = dict(
+            sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        )
+        top5_scores = dict(islice(sorted_score_desc.items(), limit))
+
+        print(limit)
+        print(len(top5_scores))
+
+        return top5_scores
 
     def get_term_frequencies(self, doc_id: int, term) -> int:
         token = tokenize(preprocess_text(term))
@@ -93,3 +151,12 @@ class InvertedIndex:
         term_count = len(self.get_documents(token[0]))
         term_idf = math.log((doc_count + 1) / (term_count + 1))
         return term_idf
+
+    def get_bm25_tf(self, doc_id: int, term: str, k1=BM25_K1, b=BM25_B) -> float:
+        avg_doc_length = self.__get_average_doc_length()
+        doc_length = self.doc_lengths.get(doc_id, 0)
+        length_norm = 1 - b + b * (doc_length / avg_doc_length)
+
+        tf = self.get_term_frequencies(doc_id, term)
+        tf_component = (tf * (k1 + 1)) / (tf + k1 * length_norm)
+        return tf_component

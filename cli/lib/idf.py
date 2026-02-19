@@ -1,4 +1,4 @@
-from .search_utils import preprocess_text, tokenize
+from .search_utils import BM25_B, BM25_K1, preprocess_text, tokenize
 from .inverted_index import InvertedIndex
 
 
@@ -33,3 +33,10 @@ def bm25_idf_command(term: str) -> float:
     inverted_index.load()
     bm25_idf = inverted_index.get_bm25_idf(term)
     return bm25_idf
+
+
+def bm25_tf_command(id: int, term: str, k1=BM25_K1, b=BM25_B) -> float:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    bm25_tf = inverted_index.get_bm25_tf(id, term, k1, b)
+    return bm25_tf

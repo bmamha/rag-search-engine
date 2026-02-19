@@ -8,6 +8,8 @@ DEFAULT_SEARCH_LIMIT = 5
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
 STOP_WORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
+BM25_K1 = 1.5
+BM25_B = 0.75
 
 
 def load_movies() -> list[dict]:
@@ -34,3 +36,24 @@ def tokenize(text: str) -> list[str]:
     stemmer = PorterStemmer()
     stemmed_tokens = [stemmer.stem(token) for token in cleaned_tokens]
     return stemmed_tokens
+
+
+def chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:
+    words = text.split()
+    chunks = []
+    current_chunk = []
+    overlapped_chunk = []
+    for word in words:
+        if len(current_chunk) < chunk_size:
+            current_chunk.append(word)
+            if len(current_chunk) > chunk_size - overlap:
+                overlapped_chunk.append(word)
+        else:
+            chunks.append(" ".join(current_chunk))
+            current_chunk = overlapped_chunk + [word]
+            overlapped_chunk = []
+
+    if current_chunk:
+        chunks.append(" ".join(current_chunk))
+
+    return chunks
