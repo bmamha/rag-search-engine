@@ -2,7 +2,6 @@
 
 import argparse
 
-from numpy import char
 from lib.semantic_search import (
     verify_model,
     embed_text,
@@ -10,7 +9,9 @@ from lib.semantic_search import (
     embed_query_text,
     SemanticSearch,
 )
-from lib.search_utils import load_movies, chunk_text
+
+from lib.chunked_semantic_search import ChunkedSemanticSearch
+from lib.search_utils import load_movies, chunk_text, semantic_chunk_text
 
 
 def main():
@@ -64,6 +65,18 @@ def main():
         help="shared number of words accross chunks",
     )
 
+    semantic_chunk_parser = subparsers.add_parser(
+        "semantic_chunk", help="Perform a semantic chunk."
+    )
+    semantic_chunk_parser.add_argument("text", type=str, help="Text string to chunk")
+    semantic_chunk_parser.add_argument(
+        "--max-chunk-size", type=int, default=4, help="Maximum size of chunk"
+    )
+    semantic_chunk_parser.add_argument(
+        "--overlap", type=int, default=0, help="Number of shared words across chunks"
+    )
+
+    subparsers.add_parser("embed_chunks", help="Embed text chunks of movies data")
     args = parser.parse_args()
 
     match args.command:
@@ -87,13 +100,14 @@ def main():
                 )
                 print(f"   {query_results[i]['description']}\n")
         case "chunk":
-            print(f"Chunking {len(list(args.text))} characters")
-            chunks = chunk_text(args.text, args.chunk_size, args.overlap)
-            rank = 0
-            for chunk in chunks:
-                print(f"{rank+1}. {chunk}\n")
-                rank += 1
-
+            chunk_text(args.text, args.chunk_size, args.overlap)
+        case "semantic_chunk":
+            semantic_chunk_text(args.text, args.max_chunk_size, args.overlap)
+        case "embed_chunks":
+            instance = ChunkedSemanticSearch()
+            documents = load_movies()
+            embeddings = instance.load_or_create_chunk_embeddings(documents)
+            print(f"Generated {len(embeddings)} chunked embeddings")
         case _:
             parser.print_help()
 
