@@ -61,6 +61,7 @@ class SemanticSearch:
 
         while limit > i:
             result = {}
+            result["movie_idx"] = similarity_score_list[i][1]["id"]
             result["score"] = similarity_score_list[i][0]
             result["title"] = similarity_score_list[i][1]["title"]
             result["description"] = similarity_score_list[i][1]["description"]

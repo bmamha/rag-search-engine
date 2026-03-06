@@ -1,7 +1,7 @@
 import os
 import json
 import numpy as np
-from lib.search_utils import semantic_chunk
+from lib.semantic_utils import cosine_similarity, semantic_chunk, SCORE_PRECISION
 from .semantic_search import SemanticSearch
 
 
@@ -56,11 +56,54 @@ class ChunkedSemanticSearch(SemanticSearch):
         if os.path.exists("cache/chunk_embeddings.npy") and os.path.exists(
             "cache/chunk_metadata.json"
         ):
-            self.chunk_embdeddings = np.load("cache/chunk_embeddings.npy")
+            self.chunk_embeddings = np.load("cache/chunk_embeddings.npy")
             with open("cache/chunk_metadata.json", "r") as f:
                 metadata = json.load(f)
                 self.chunk_metadata = metadata["chunks"]
-            return self.chunk_embdeddings
+            return self.chunk_embeddings
 
         return self.build_chunk_embeddings(documents)
 
+    def search_chunks(self, query: str, limit: int = 10):
+        query_embedding = self.generate_embedding(query)
+        chunk_scores = []
+        for i, chunk_embedding in enumerate(self.chunk_embeddings):
+            score = cosine_similarity(chunk_embedding, query_embedding)
+            metadata = self.chunk_metadata[i]
+            chunk_idx = metadata["chunk_id"]
+            movie_idx = metadata["movie_idx"]
+
+            chunk_scores.append(
+                {
+                    "chunk_idx": chunk_idx,
+                    "movie_idx": movie_idx,
+                    "score": score,
+                }
+            )
+
+        movie_scores = {}
+
+        for cs in chunk_scores:
+            if (
+                cs["movie_idx"] not in movie_scores
+                or cs["score"] > movie_scores[cs["movie_idx"]]
+            ):
+                movie_scores[cs["movie_idx"]] = cs["score"]
+
+        sorted_movie_scores = sorted(
+            movie_scores.items(), key=lambda x: x[1], reverse=True
+        )
+        top_movies_list = sorted_movie_scores[:limit]
+
+        return_list = []
+
+        for movies in top_movies_list:
+            film_data = {}
+            film_data["id"] = self.documents[movies[0]]["id"]
+            film_data["title"] = self.documents[movies[0]]["title"]
+            film_data["document"] = self.documents[movies[0]]["description"][:100]
+            film_data["score"] = round(movies[1], SCORE_PRECISION)
+            film_data["metadata"] = self.documents[movies[0]].get("metadata", {})
+            return_list.append(film_data)
+
+        return return_list

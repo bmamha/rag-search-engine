@@ -11,7 +11,8 @@ from lib.semantic_search import (
 )
 
 from lib.chunked_semantic_search import ChunkedSemanticSearch
-from lib.search_utils import load_movies, chunk_text, semantic_chunk_text
+from lib.search_utils import load_movies
+from lib.semantic_utils import chunk_text, semantic_chunk_text
 
 
 def main():
@@ -77,6 +78,16 @@ def main():
     )
 
     subparsers.add_parser("embed_chunks", help="Embed text chunks of movies data")
+
+    search_chunked = subparsers.add_parser(
+        "search_chunked", help="Search for similar documents using chunked embeddings"
+    )
+    search_chunked.add_argument(
+        "query", type=str, help="Query text string to search for"
+    )
+    search_chunked.add_argument(
+        "--limit", type=int, default=5, help="Number of search results to return"
+    )
     args = parser.parse_args()
 
     match args.command:
@@ -108,6 +119,14 @@ def main():
             documents = load_movies()
             embeddings = instance.load_or_create_chunk_embeddings(documents)
             print(f"Generated {len(embeddings)} chunked embeddings")
+        case "search_chunked":
+            instance = ChunkedSemanticSearch()
+            documents = load_movies()
+            embeddings = instance.load_or_create_chunk_embeddings(documents)
+            results = instance.search_chunks(args.query, args.limit)
+            for i, film in enumerate(results):
+                print(f"\n{i+1}. {film["title"]} (score: {film["score"]:.4f})")
+                print(f"   {film["document"]}...\n")
         case _:
             parser.print_help()
 

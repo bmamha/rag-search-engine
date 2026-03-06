@@ -1,7 +1,6 @@
 import json
 import os
 import string
-import re
 from nltk.stem import PorterStemmer
 
 
@@ -37,56 +36,3 @@ def tokenize(text: str) -> list[str]:
     stemmer = PorterStemmer()
     stemmed_tokens = [stemmer.stem(token) for token in cleaned_tokens]
     return stemmed_tokens
-
-
-def fixed_size_chunk(text: str, chunk_size: int, overlap: int) -> list[str]:
-    words = text.split()
-    chunks = []
-    current_chunk = []
-    overlapped_chunk = []
-    for word in words:
-        if len(current_chunk) < chunk_size:
-            current_chunk.append(word)
-            if len(current_chunk) > chunk_size - overlap:
-                overlapped_chunk.append(word)
-        else:
-            chunks.append(" ".join(current_chunk))
-            current_chunk = overlapped_chunk + [word]
-            overlapped_chunk = []
-
-    if current_chunk:
-        chunks.append(" ".join(current_chunk))
-
-    return chunks
-
-
-def semantic_chunk(
-    text: str,
-    max_chunk_size: int,
-    overlap: int,
-) -> list[str]:
-    sentences = re.split(r"(?<=[.!?])\s+", text)
-    chunks = []
-    i = 0
-    n_sentences = len(sentences)
-    while i < n_sentences:
-        chunk_sentences = sentences[i : i + max_chunk_size]
-        if chunks and len(chunk_sentences) <= overlap:
-            break
-        chunks.append(" ".join(chunk_sentences))
-        i += max_chunk_size - overlap
-    return chunks
-
-
-def chunk_text(text: str, max_chunk_size: int, overlap: int):
-    print(f"Chunking {len(list(text))} characters\n")
-    chunks = fixed_size_chunk(text, max_chunk_size, overlap)
-    for i, chunk in enumerate(chunks):
-        print(f"{i+1}. {chunk}\n")
-
-
-def semantic_chunk_text(text: str, max_chunk_size: int, overlap: int):
-    print(f"Semantically chunking {len(list(text))} characters\n")
-    chunks = semantic_chunk(text, max_chunk_size, overlap)
-    for i, chunk in enumerate(chunks):
-        print(f"{i+1}. {chunk}\n")

@@ -105,8 +105,6 @@ def main() -> None:
             inverted_index = InvertedIndex()
             inverted_index.load()
             results = inverted_index.bm25_search(args.query, DEFAULT_SEARCH_LIMIT)
-            print(len(results))
-            print(args.limit)
             list_count = 1
 
             for doc_id in results:
