@@ -35,3 +35,46 @@ Examples:
 
 User query: 
 """
+
+
+def individual_rerank_prompt(query: str, doc: dict) -> str:
+    title = doc.get("title", "")
+    description = doc.get("description", "")
+
+    return f"""Rate how well this movie matches the search query.
+
+Query: "{query}"
+Movie: {title} - {description}
+
+Consider:
+- Direct relevance to query
+- User intent (what they're looking for)
+- Content appropriateness
+
+Rate 0-10 (10 = perfect match).
+Output ONLY the number in your response, no other text or explanation.
+
+Score:"""
+
+
+def batch_rerank_prompt(query: str, doc: dict) -> str:
+    doc_list = []
+    for movie in doc.values():
+        doc_list.append(
+            f"{movie.get("id", "")},{movie.get("title", "")} - {movie.get("description", "")[:100]}..."
+        )
+
+    doc_list_str = "\n".join(doc_list)
+    return f"""Rank the movies listed below by relevance to the following search query.
+
+Query: "{query}"
+
+Movies:
+{doc_list_str}
+
+Return ONLY the movie IDs in order of relevance (best match first). Return a valid JSON list, nothing else.
+
+For example:
+[75, 12, 34, 2, 1]
+
+Ranking:"""

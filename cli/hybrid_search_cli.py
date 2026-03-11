@@ -1,9 +1,14 @@
 import argparse
 
-from lib.hybrid_utils import normalize_text
-from lib.hybrid_search import HybridSearch
-from lib.search_utils import load_movies
-from lib.enhance import enhance
+from lib.hybrid_utils import (
+    hybrid_result_text,
+    normalize_text,
+    sort_rrf_results,
+    rerank_results,
+    reranked_results_text,
+)
+from lib.hybrid_search import rrf_hybrid_search, weighted_hybrid_search
+from lib.llm_requests import enhance
 
 
 def main() -> None:
@@ -52,15 +57,20 @@ def main() -> None:
         help="Query enhancement method",
     )
 
+    rrf_parser.add_argument(
+        "--rerank-method",
+        type=str,
+        choices=["individual", "batch", "cross_encoder"],
+        help="re-rank results using LLMs",
+    )
+
     args = parser.parse_args()
 
     match args.command:
         case "normalize":
             normalize_text(args.values)
         case "weighted-search":
-            documents = load_movies()
-            instance = HybridSearch(documents)
-            weighted_results = instance.weighted_search(
+            weighted_results = weighted_hybrid_search(
                 args.query, args.alpha, args.limit
             )
             for i, result in enumerate(weighted_results):
@@ -69,18 +79,23 @@ def main() -> None:
                         f"{i+1}. {val['title']}\nHybrid Score: {val['hybrid_score']:.4f}\nBM25 Score: {val['keyword_score']:.4f}\nSemantic Score: {val['semantic_score']:.4f}\n{val['description'][:100]}...\n"
                     )
         case "rrf-search":
+            limit = args.limit
+            k = args.k
             query = enhance(args.query, args.enhance) if args.enhance else args.query
             if query != args.query:
                 print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
-            documents = load_movies()
-            instance = HybridSearch(documents)
-            rrf_results = instance.rrf_search(query, args.k, args.limit)
-            i = 0
-            for result in rrf_results.values():
-                print(
-                    f"{i+1}. {result['title']}\nRRF Score: {result['rrf_score']:.4f}\nBM25Rank: {result['bm25_rank']}, Semantic Rank {result['semantic_rank']}\n{result['description'][:100]}...\n"
-                )
-                i += 1
+
+            if args.rerank_method:
+                limit = limit * 5
+            rrf_results = rrf_hybrid_search(query, k, limit)
+            hybrid_result_text(rrf_results)
+            """the following additional steps execute if we request an 
+             LLM-based re-ranking method"""
+            method = args.rerank_method
+            if method:
+                rerank_results(query, method, rrf_results)
+                sorted_rrf_results = sort_rrf_results(method, rrf_results)
+                reranked_results_text(args.limit, method, sorted_rrf_results, k)
 
         case _:
             parser.print_help()
