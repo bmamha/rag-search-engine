@@ -30,6 +30,7 @@ def main():
         relevant_retrieved = []
         query = tc["query"]
         search_results = instance.rrf_search(query, 60, limit)
+        relevant_length = len(tc["relevant_docs"])
         for result in search_results.values():
             title = result["title"]
             total_retrieved.append(title)
@@ -40,14 +41,17 @@ def main():
                 "query": query,
                 "relevant_retrieved": relevant_retrieved,
                 "total_retrieved": total_retrieved,
+                "total_relevant": relevant_length,
             }
         )
 
     print(f"k={limit}")
     for result in precision_results:
         precision = len(result["relevant_retrieved"]) / len(result["total_retrieved"])
+        recall = len(result["relevant_retrieved"]) / result["total_relevant"]
         print(f"- Query: {result["query"]}")
         print(f"  - Precision@{limit}: {precision:.4f}")
+        print(f"  - Recall@{limit}: {recall:.4f}")
         retrieved_films = ", ".join(result["total_retrieved"])
         relevant_films = ", ".join(result["relevant_retrieved"])
         print(f"  - Retrieved: {retrieved_films}")
