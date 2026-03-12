@@ -1,5 +1,5 @@
 import time
-from .llm_requests import individual_rerank_score, batch_rerank
+from .llm_requests import individual_rerank_score, batch_rerank, evaluate
 from sentence_transformers import CrossEncoder
 
 
@@ -60,9 +60,12 @@ def rerank_results(query: str, method: str, results: dict):
             cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
             scores = cross_encoder.predict(pairs)
             counter = 0
-            for id, doc in results.items():
+            for id in results.keys():
                 results[id]["cross_encoder_score"] = scores[counter]
                 counter += 1
+
+        case _:
+            return
 
 
 def reranked_results_text(limit: int, method: str, results: list, k: int):
@@ -80,6 +83,22 @@ def reranked_results_text(limit: int, method: str, results: list, k: int):
             f"BM25 Rank: {result['bm25_rank']}, Semantic Rank: {result['semantic_rank']}"
         )
         print(f"{result['description'][:100]}...\n")
+
+
+def evaluate_results(query: str, results: dict):
+    score_list = evaluate(query, results)
+    index = 0
+    for id in results.keys():
+        results[id]["relevant_rating"] = score_list[index]
+        index += 1
+
+
+def evaluate_results_text(query: str, results: dict):
+    evaluate_results(query, results)
+    i = 1
+    for result in results.values():
+        print(f"{i}. {result["title"]} {result["relevant_rating"]}/3\n")
+        i += 1
 
 
 def sort_rrf_results(method: str, doc: dict):
@@ -104,4 +123,4 @@ def sort_rrf_results(method: str, doc: dict):
             )
             return sorted_results
         case _:
-            return []
+            return list(doc.values())

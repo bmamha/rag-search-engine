@@ -49,9 +49,12 @@ def main():
     for result in precision_results:
         precision = len(result["relevant_retrieved"]) / len(result["total_retrieved"])
         recall = len(result["relevant_retrieved"]) / result["total_relevant"]
+        f1 = 2 * (precision * recall) / (precision + recall)
         print(f"- Query: {result["query"]}")
+        print("\n\n\n ")
         print(f"  - Precision@{limit}: {precision:.4f}")
         print(f"  - Recall@{limit}: {recall:.4f}")
+        print(f"  - F1 Score: {f1:.4f}")
         retrieved_films = ", ".join(result["total_retrieved"])
         relevant_films = ", ".join(result["relevant_retrieved"])
         print(f"  - Retrieved: {retrieved_films}")

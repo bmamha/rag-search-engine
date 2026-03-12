@@ -6,6 +6,7 @@ from lib.hybrid_utils import (
     sort_rrf_results,
     rerank_results,
     reranked_results_text,
+    evaluate_results_text,
 )
 from lib.hybrid_search import rrf_hybrid_search, weighted_hybrid_search
 from lib.llm_requests import enhance
@@ -56,7 +57,12 @@ def main() -> None:
         choices=["spell", "rewrite", "expand"],
         help="Query enhancement method",
     )
-
+    rrf_parser.add_argument(
+        "--evaluate",
+        "-e",
+        action="store_true",
+        help="Enable LLM to evaluate the relevancy of our ranked search",
+    )
     rrf_parser.add_argument(
         "--rerank-method",
         type=str,
@@ -96,6 +102,8 @@ def main() -> None:
                 rerank_results(query, method, rrf_results)
                 sorted_rrf_results = sort_rrf_results(method, rrf_results)
                 reranked_results_text(args.limit, method, sorted_rrf_results, k)
+            if args.evaluate:
+                evaluate_results_text(query, rrf_results)
 
         case _:
             parser.print_help()

@@ -6,6 +6,7 @@ from .prompts import (
     SPELL_PROMPT,
     REWRITE_PROMPT,
     EXPAND_PROMPT,
+    evaluate_prompt,
     individual_rerank_prompt,
     batch_rerank_prompt,
 )
@@ -52,3 +53,10 @@ def batch_rerank(query: str, doc: dict) -> list:
     response = client.models.generate_content(model=MODEL, contents=prompt)
     ranked_score_list = json.loads(response.text.strip())
     return ranked_score_list
+
+
+def evaluate(query: str, doc: dict) -> list:
+    prompt = evaluate_prompt(query, doc)
+    response = client.models.generate_content(model=MODEL, contents=prompt)
+    scores_list = json.loads(response.text.strip())
+    return scores_list

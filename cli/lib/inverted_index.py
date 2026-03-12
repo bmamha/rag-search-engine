@@ -121,9 +121,6 @@ class InvertedIndex:
         )
         top5_scores = dict(islice(sorted_score_desc.items(), limit))
 
-        print(limit)
-        print(len(top5_scores))
-
         return top5_scores
 
     def get_term_frequencies(self, doc_id: int, term) -> int:
