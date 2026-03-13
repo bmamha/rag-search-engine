@@ -96,7 +96,7 @@ def main() -> None:
             rrf_results = rrf_hybrid_search(query, k, limit)
             hybrid_result_text(rrf_results)
             """the following additional steps execute if we request an 
-             LLM-based re-ranking method"""
+             LLM-based or model based  re-ranking or rating method"""
             method = args.rerank_method
             if method:
                 rerank_results(query, method, rrf_results)
