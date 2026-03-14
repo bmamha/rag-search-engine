@@ -1,11 +1,11 @@
 import argparse
-from lib.search_utils import load_movies
-from lib.hybrid_search import rrf_hybrid_search
-from lib.llm_requests import (
-    augmented_generation,
-    llm_citation_summary,
-    llm_summarization,
+from lib.prompts import (
+    augmented_generation_prompt,
+    citations_prompt,
+    summarize_prompt,
 )
+from lib.hybrid_search import rrf_hybrid_search
+from lib.llm_requests import llm_response_generator
 from lib.augmented_utils import augmented_text
 
 
@@ -42,19 +42,19 @@ def main():
 
             # do RAG stuff here
             docs = rrf_hybrid_search(query)
-            response = augmented_generation(query, docs)
+            response = llm_response_generator(query, docs, augmented_generation_prompt)
             augmented_text(docs, "RAG Response:", response)
         case "summarize":
             query = args.query
             limit = args.limit
             docs = rrf_hybrid_search(query, limit=limit)
-            response = llm_summarization(query, docs)
+            response = llm_response_generator(query, docs, summarize_prompt)
             augmented_text(docs, "LLM Summary:", response)
         case "citations":
             query = args.query
             limit = args.limit
             docs = rrf_hybrid_search(query, limit=limit)
-            response = llm_citation_summary(query, docs)
+            response = llm_response_generator(query, docs, citations_prompt)
             augmented_text(docs, "LLM Answer:", response)
         case _:
             parser.print_help()

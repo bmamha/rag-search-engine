@@ -7,12 +7,9 @@ from .prompts import (
     SPELL_PROMPT,
     REWRITE_PROMPT,
     EXPAND_PROMPT,
-    augmented_generation_prompt,
     evaluate_prompt,
     individual_rerank_prompt,
     batch_rerank_prompt,
-    summarize_prompt,
-    citations_prompt,
 )
 
 load_dotenv()
@@ -69,18 +66,3 @@ def evaluate(query: str, docs: dict) -> list:
     text = llm_response_generator(query, docs, evaluate_prompt)
     scores_list = json.loads(text)
     return scores_list
-
-
-def augmented_generation(query: str, docs: dict) -> str:
-    text = llm_response_generator(query, docs, augmented_generation_prompt)
-    return text
-
-
-def llm_summarization(query: str, docs: dict) -> str:
-    text = llm_response_generator(query, docs, summarize_prompt)
-    return text
-
-
-def llm_citation_summary(query: str, docs: dict) -> str:
-    text = llm_response_generator(query, docs, citations_prompt)
-    return text
