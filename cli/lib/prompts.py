@@ -104,3 +104,20 @@ Do NOT give any numbers other than 0, 1, 2, or 3.
 Return ONLY the scores in the same order you were given the documents. Return a valid JSON list, nothing else. For example:
 
 [2, 0, 3, 2, 0, 1]"""
+
+
+def augmented_generation_prompt(query: str, docs: dict) -> str:
+    film_title_list = []
+    for doc in docs.values():
+        film_title_list.append(doc["title"])
+    film_titles = "\n".join(film_title_list)
+
+    prompt = f"""Answer the question or provide information based on the provided documents. This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+Query: {query}
+
+Documents:
+{film_titles}
+
+Provide a comprehensive answer that addresses the query:"""
+    return prompt
