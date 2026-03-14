@@ -50,8 +50,8 @@ def llm_response_generator(
     return (content.text or "").strip().strip('"')
 
 
-def individual_rerank_score(query: str, docs: dict) -> float:
-    text = llm_response_generator(query, docs, individual_rerank_prompt)
+def individual_rerank_score(query: str, doc: dict) -> float:
+    text = llm_response_generator(query, doc, individual_rerank_prompt)
     try:
         score = float(text)
         return score
