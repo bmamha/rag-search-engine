@@ -2,6 +2,7 @@ import os
 import json
 from dotenv import load_dotenv
 from google import genai
+from typing import Callable
 from .prompts import (
     SPELL_PROMPT,
     REWRITE_PROMPT,
@@ -10,6 +11,8 @@ from .prompts import (
     evaluate_prompt,
     individual_rerank_prompt,
     batch_rerank_prompt,
+    summarize_prompt,
+    citations_prompt,
 )
 
 load_dotenv()
@@ -39,32 +42,45 @@ def enhance_prompt_selector(query, method: str | None) -> str:
             return query
 
 
-def individual_rerank_score(query: str, doc: dict) -> float:
-    prompt = individual_rerank_prompt(query, doc)
-    response = client.models.generate_content(model=MODEL, contents=prompt)
+def llm_response_generator(
+    query: str, docs: dict, prompt_generator_func: Callable[[str, dict], str]
+) -> str:
+    prompt = prompt_generator_func(query, docs)
+    content = client.models.generate_content(model=MODEL, contents=prompt)
+    return (content.text or "").strip().strip('"')
+
+
+def individual_rerank_score(query: str, docs: dict) -> float:
+    text = llm_response_generator(query, docs, individual_rerank_prompt)
     try:
-        score = float(response.text.strip())
+        score = float(text)
         return score
     except ValueError:
         return 0.0
 
 
-def batch_rerank(query: str, doc: dict) -> list:
-    prompt = batch_rerank_prompt(query, doc)
-    response = client.models.generate_content(model=MODEL, contents=prompt)
-    ranked_score_list = json.loads(response.text.strip())
+def batch_rerank(query: str, docs: dict) -> list:
+    text = llm_response_generator(query, docs, batch_rerank_prompt)
+    ranked_score_list = json.loads(text)
     return ranked_score_list
 
 
-def evaluate(query: str, doc: dict) -> list:
-    prompt = evaluate_prompt(query, doc)
-    response = client.models.generate_content(model=MODEL, contents=prompt)
-    scores_list = json.loads(response.text.strip())
+def evaluate(query: str, docs: dict) -> list:
+    text = llm_response_generator(query, docs, evaluate_prompt)
+    scores_list = json.loads(text)
     return scores_list
 
 
-def augmented_generation(query: str, doc: dict) -> str:
-    prompt = augmented_generation_prompt(query, doc)
-    response = client.models.generate_content(model=MODEL, contents=prompt)
-    text = response.text.strip()
+def augmented_generation(query: str, docs: dict) -> str:
+    text = llm_response_generator(query, docs, augmented_generation_prompt)
+    return text
+
+
+def llm_summarization(query: str, docs: dict) -> str:
+    text = llm_response_generator(query, docs, summarize_prompt)
+    return text
+
+
+def llm_citation_summary(query: str, docs: dict) -> str:
+    text = llm_response_generator(query, docs, citations_prompt)
     return text

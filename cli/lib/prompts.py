@@ -80,18 +80,14 @@ For example:
 Ranking:"""
 
 
-def evaluate_prompt(query: str, doc: dict) -> str:
-    formatted_results = []
-    for film in doc.values():
-        formatted_results.append(
-            f"{film.get("title", "")} - {film.get("description", "")[0:100]}..."
-        )
+def evaluate_prompt(query: str, docs: dict) -> str:
+    formatted_results = doc_summary(docs)
     return f"""Rate how relevant each result is to this query on a 0-3 scale:
 
 Query: "{query}"
 
 Results:
-{chr(10).join(formatted_results)}
+{formatted_results}
 
 Scale:
 - 3: Highly relevant
@@ -107,10 +103,7 @@ Return ONLY the scores in the same order you were given the documents. Return a 
 
 
 def augmented_generation_prompt(query: str, docs: dict) -> str:
-    film_title_list = []
-    for doc in docs.values():
-        film_title_list.append(doc["title"])
-    film_titles = "\n".join(film_title_list)
+    film_titles = doc_summary(docs)
 
     prompt = f"""Answer the question or provide information based on the provided documents. This should be tailored to Hoopla users. Hoopla is a movie streaming service.
 
@@ -121,3 +114,50 @@ Documents:
 
 Provide a comprehensive answer that addresses the query:"""
     return prompt
+
+
+def summarize_prompt(query: str, docs: dict) -> str:
+    results = doc_summary(docs)
+    return f"""
+Provide information useful to this query by synthesizing information from multiple search results in detail.
+The goal is to provide comprehensive information so that users know what their options are.
+Your response should be information-dense and concise, with several key pieces of information about the genre, plot, etc. of each movie.
+This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+Query: {query}
+Search Results:
+{results}
+Provide a comprehensive 3–4 sentence answer that combines information from multiple sources:
+"""
+
+
+def citations_prompt(query: str, docs: dict) -> str:
+    documents = doc_summary(docs)
+    prompt = f"""Answer the question or provide information based on the provided documents.
+
+This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+If not enough information is available to give a good answer, say so but give as good of an answer as you can while citing the sources you have.
+
+Query: {query}
+
+Documents:
+{documents}
+
+Instructions:
+- Provide a comprehensive answer that addresses the query
+- Cite sources using [1], [2], etc. format when referencing information
+- If sources disagree, mention the different viewpoints
+- If the answer isn't in the documents, say "I don't have enough information"
+- Be direct and informative
+
+Answer:"""
+    return prompt
+
+
+def doc_summary(docs: dict) -> str:
+    formatted_results = []
+    for film in docs.values():
+        formatted_results.append(
+            f"{film.get("title", "")} - {film.get("description", "")[0:100]}..."
+        )
+    return chr(10).join(formatted_results)
