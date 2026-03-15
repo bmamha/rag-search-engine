@@ -2,6 +2,7 @@ import argparse
 from lib.prompts import (
     augmented_generation_prompt,
     citations_prompt,
+    question_prompt,
     summarize_prompt,
 )
 from lib.hybrid_search import rrf_hybrid_search
@@ -34,6 +35,20 @@ def main():
     citation_parser.add_argument(
         "--limit", type=int, default=5, help="Limit for search results"
     )
+
+    question_parser = subparsers.add_parser(
+        "question", help="Answer questions using an LLM"
+    )
+    question_parser.add_argument(
+        "question", type=str, help="Query in form of a question"
+    )
+    question_parser.add_argument(
+        "--limit",
+        type=int,
+        default=5,
+        help="Limit for our search results which are to be contexts for our llm",
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -56,6 +71,12 @@ def main():
             docs = rrf_hybrid_search(query, limit=limit)
             response = llm_response_generator(query, docs, citations_prompt)
             augmented_text(docs, "LLM Answer:", response)
+        case "question":
+            query = args.question
+            limit = args.limit
+            docs = rrf_hybrid_search(query, limit=limit)
+            response = llm_response_generator(query, docs, question_prompt)
+            augmented_text(docs, "Answer:", response)
         case _:
             parser.print_help()
 
