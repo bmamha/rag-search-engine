@@ -2,6 +2,7 @@ import os
 import json
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 from typing import Callable
 from .prompts import (
     SPELL_PROMPT,
@@ -43,8 +44,20 @@ def llm_response_generator(
     query: str, docs: dict, prompt_generator_func: Callable[[str, dict], str]
 ) -> str:
     prompt = prompt_generator_func(query, docs)
-    content = client.models.generate_content(model=MODEL, contents=prompt)
-    return (content.text or "").strip().strip('"')
+    response = client.models.generate_content(model=MODEL, contents=prompt)
+    return (response.text or "").strip().strip('"')
+
+
+def llm_image_response_generator(
+    img: bytes, system_prompt: str, mime: str, query: str
+) -> tuple[str, int | None]:
+    parts = [system_prompt, types.Part.from_bytes(data=img, mime_type=mime), query]
+    response = client.models.generate_content(model=MODEL, contents=parts)
+    content = (response.text or "").strip()
+    total_token_count = (
+        response.usage_metadata.total_token_count if response.usage_metadata else None
+    )
+    return content, total_token_count
 
 
 def individual_rerank_score(query: str, doc: dict) -> float:
